@@ -1,0 +1,14 @@
+{
+  "name": "wasm-optimizator",
+  "version": "1.0.0",
+  "main": "src/main.js",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "node src/main.js"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.9",
+    "express": "^4.17.1"
+  }
+}
