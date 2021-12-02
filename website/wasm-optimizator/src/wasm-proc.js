@@ -6,7 +6,12 @@ const path = {
   wasm: (name) => `/wasm-build/${name}.wasm`,
   opt: (name) => `/wasm-build/${name}.opt.wasm`,
   meta: (name) => `/wasm-build/${name}.meta.wasm`,
-  all: (name) => `/wasm-build/${name}*`,
+};
+
+const rmAll = (name) => {
+  rmSync(path.wasm(name));
+  rmSync(path.meta(name));
+  rmSync(path.opt(name));
 };
 
 /**
@@ -14,17 +19,19 @@ const path = {
  * @param {Buffer} wasm
  * @param {string} name
  */
-export const optimize = async (wasm, name) => {
+export default async (wasm, name) => {
   name = name.replace('.wasm', '');
-  const optName = writeFileSync(path.wasm(name), wasm);
-  exec(`wasm-proc -p /wasm-build/${name}`, (error, stdout, stderr) => {
-    console.log(stdout);
-    console.log(stderr);
+  writeFileSync(path.wasm(name), wasm);
+  await new Promise((resolve, reject) => {
+    exec(`wasm-proc -p ${path.wasm(name)}`, (_, stdout, stderr) => {
+      console.log(stdout);
+      console.log(stderr);
+      resolve();
+    });
   });
   const opt = readFileSync(path.opt(name));
   const meta = readFileSync(path.meta(name));
-  rmSync(path.all(name));
-
+  rmAll(name);
   const zip = new AdmZip();
   zip.addFile(`${name}.opt.wasm`, Buffer.alloc(opt.length, opt));
   zip.addFile(`${name}.meta.wasm`, Buffer.alloc(meta.length, meta));

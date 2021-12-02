@@ -1,6 +1,6 @@
-import { run } from './server';
+import { run } from './server.js';
 import { config } from 'dotenv';
 
 config();
 
-run(process.env.PORT);
+run(5000); //process.env.PORT);
