@@ -1,11 +1,11 @@
-import { GearType } from '.';
-import { Metadata } from './interfaces';
+import { Metadata, ProgramId } from './interfaces';
 import { SubmitProgramError } from './errors';
 import { AnyNumber } from '@polkadot/types/types';
 import { Bytes, U64, u64 } from '@polkadot/types';
 import { H256, BalanceOf } from '@polkadot/types/interfaces';
 import { randomAsHex, blake2AsU8a } from '@polkadot/util-crypto';
 import { GearTransaction } from './types/Transaction';
+import { createPayload } from '.';
 
 export class GearProgram extends GearTransaction {
   /**
@@ -17,18 +17,16 @@ export class GearProgram extends GearTransaction {
     program: {
       code: Buffer;
       salt?: string;
-      initPayload?: string | GearType;
+      initPayload?: string | any;
       gasLimit: u64 | AnyNumber;
       value?: BalanceOf | AnyNumber;
     },
-    meta: Metadata,
+    meta?: Metadata,
     messageType?: string,
-  ): string {
-    const payload = program.initPayload
-      ? this.createType.encode(messageType || meta.init_input, program.initPayload, meta)
-      : '0x00';
+  ): ProgramId {
     const salt = program.salt || randomAsHex(20);
-    const code = this.createType.encode('bytes', Array.from(program.code));
+    const code = this.createType.create('bytes', Array.from(program.code)) as Bytes;
+    let payload: string = createPayload(this.createType, messageType || meta.init_input, program.initPayload, meta);
     try {
       this.submitted = this.api.tx.gear.submitProgram(code, salt, payload, program.gasLimit, program.value || 0);
       const programId = this.generateProgramId(code, salt);
@@ -45,8 +43,8 @@ export class GearProgram extends GearTransaction {
     return programs;
   }
 
-  async getGasSpent(programId: string, payload: any, type: any, meta: Metadata): Promise<U64> {
-    const payloadBytes = this.createType.encode(type, payload, meta);
+  async getGasSpent(programId: string, payload: any, type: any, meta?: Metadata): Promise<U64> {
+    const payloadBytes = createPayload(this.createType, type, payload, meta);
     const gasSpent = await this.api.rpc.gear.getGasSpent(programId, payloadBytes);
     return gasSpent;
   }

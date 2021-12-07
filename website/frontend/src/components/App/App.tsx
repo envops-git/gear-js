@@ -3,23 +3,22 @@ import { BrowserRouter, Route, Switch } from 'react-router-dom';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import { positions, Provider as AlertProvider } from 'react-alert';
 import { AlertTemplate } from 'components/AlertTemplate';
-import { PrivateRoute } from 'components/PrivateRoute/PrivateRoute';
 import { Footer } from 'components/blocks/Footer/Footer';
-import { SignIn } from 'components/pages/SignIn/SignIn';
 import { Programs } from 'components/pages/Programs/Programs';
 import { Program } from 'components/pages/Program/Program';
 import { Header } from 'components/blocks/Header/Header';
 import { Main } from 'components/layouts/Main/Main';
-import { Callback } from 'components/Callback/Callback';
-import { Logout } from 'components/pages/Logout/Logout';
 import { LoadingPopup } from 'components/LoadingPopup/LoadingPopup';
 import { Document } from 'components/pages/Document/Document';
 import { EditorPage } from 'features/Editor/EditorPage';
 import { NotificationsPage } from 'components/pages/Notifications/NotificationsPage';
+import { SimpleLoader } from 'components/blocks/SimpleLoader';
 
 import { routes } from 'routes';
 import { RootState } from 'store/reducers';
-import { getUnreadNotificationsCount, getUserDataAction } from 'store/actions/actions';
+import { getUnreadNotificationsCount } from 'store/actions/actions';
+import { subscribeToEvents, setApiReady } from '../../store/actions/actions';
+import { nodeApi } from '../../api/initApi';
 import store from '../../store';
 
 import './App.scss';
@@ -46,7 +45,7 @@ const options = {
 const AppComponent: FC = () => {
   const dispatch = useDispatch();
 
-  const { user } = useSelector((state: RootState) => state.user);
+  const { isApiReady } = useSelector((state: RootState) => state.api);
   const { countUnread } = useSelector((state: RootState) => state.notifications);
   const { isProgramUploading, isMessageSending } = useSelector((state: RootState) => state.programs);
 
@@ -59,13 +58,24 @@ const AppComponent: FC = () => {
   }, [isProgramUploading, isMessageSending]);
 
   useEffect(() => {
-    if (!user) {
-      dispatch(getUserDataAction());
-    }
     if (typeof countUnread !== 'number') {
       dispatch(getUnreadNotificationsCount());
     }
-  }, [dispatch, user, countUnread]);
+  }, [dispatch, countUnread]);
+
+  useEffect(() => {
+    if (!isApiReady) {
+      nodeApi.init().then(() => {
+        dispatch(setApiReady());
+      });
+    }
+  }, [dispatch, isApiReady]);
+
+  useEffect(() => {
+    if (isApiReady) {
+      dispatch(subscribeToEvents());
+    }
+  }, [dispatch, isApiReady]);
 
   const isFooterHidden = () => {
     const locationPath = window.location.pathname.replaceAll('/', '');
@@ -86,32 +96,27 @@ const AppComponent: FC = () => {
           )}
           <Header />
           <Main>
-            <Switch>
-              <PrivateRoute exact path={[routes.main, routes.uploadedPrograms, routes.allPrograms]}>
-                <Programs />
-              </PrivateRoute>
-              <PrivateRoute exact path={routes.program}>
-                <Program />
-              </PrivateRoute>
-              <PrivateRoute path={routes.editor} exact>
-                <EditorPage />
-              </PrivateRoute>
-              <PrivateRoute path={routes.notifications} exact>
-                <NotificationsPage />
-              </PrivateRoute>
-              <Route exact path={routes.signIn}>
-                <SignIn />
-              </Route>
-              <Route exact path={[routes.privacyPolicy, routes.termsOfUse]}>
-                <Document />
-              </Route>
-              <Route path={routes.callback} exact>
-                <Callback />
-              </Route>
-              <Route path={routes.logout} exact>
-                <Logout />
-              </Route>
-            </Switch>
+            {isApiReady ? (
+              <Switch>
+                <Route exact path={[routes.main, routes.uploadedPrograms, routes.allPrograms]}>
+                  <Programs />
+                </Route>
+                <Route exact path={routes.program}>
+                  <Program />
+                </Route>
+                <Route exact path={routes.editor}>
+                  <EditorPage />
+                </Route>
+                <Route exact path={routes.notifications}>
+                  <NotificationsPage />
+                </Route>
+                <Route exact path={[routes.privacyPolicy, routes.termsOfUse]}>
+                  <Document />
+                </Route>
+              </Switch>
+            ) : (
+              <SimpleLoader />
+            )}
           </Main>
           {isFooterHidden() || <Footer />}
           <Alert />

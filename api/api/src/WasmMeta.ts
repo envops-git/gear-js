@@ -1,6 +1,11 @@
 import { Metadata } from './interfaces';
 
-export async function getWasmMetadata(wasmBytes: Buffer, pages?: any): Promise<Metadata> {
+export async function getWasmMetadata(
+  wasmBytes: Buffer,
+  showDebug = false,
+  pages?: any,
+  inputValue?: Uint8Array,
+): Promise<Metadata> {
   const memory = new WebAssembly.Memory({ initial: pages ? Object.keys(pages).length : 256 });
   const importObj = {
     env: {
@@ -22,24 +27,31 @@ export async function getWasmMetadata(wasmBytes: Buffer, pages?: any): Promise<M
       },
       free: (_pages) => {},
       gr_debug: (msg) => {
-        console.log(msg);
+        showDebug && console.log('GR_DEBUG: ', msg);
       },
+      gr_exit_code: () => {},
       gr_msg_id: () => {},
-      gr_size: () => {},
-      gr_read: () => {},
-      gr_source: () => {},
-      gr_gas_available: () => {},
+      gr_read: (at: number, len: number, dest: number) => {
+        new Uint8Array(memory.buffer).set(inputValue.slice(at, len), dest);
+      },
+      gr_reply: () => {},
+      gr_reply_commit: () => {},
+      gr_reply_push: () => {},
+      gr_reply_to: () => {},
       gr_send: () => {},
       gr_send_commit: () => {},
       gr_send_init: () => {},
       gr_send_push: () => {},
-      gr_reply: () => {},
-      gr_reply_push: () => {},
-      gr_reply_to: () => {},
+      gr_size: () => {
+        return inputValue.byteLength;
+      },
+      gr_source: () => {},
       gr_value: () => {},
+      gr_block_height: () => {},
+      gr_block_timestamp: () => {},
+      gr_gas_available: () => {},
       gr_wait: () => {},
       gr_wake: () => {},
-      gr_exit_code: () => {},
     },
   };
 
@@ -53,7 +65,6 @@ export async function getWasmMetadata(wasmBytes: Buffer, pages?: any): Promise<M
         new Uint8Array(memory.buffer)[i] = page[i % 65536];
       }
     });
-
   const exports = module.instance.exports;
   if (!exports) {
     return {};

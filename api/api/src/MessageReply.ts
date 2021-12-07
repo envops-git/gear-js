@@ -1,7 +1,7 @@
-import { GearApi, CreateType } from '.';
-import { Metadata, GearType } from './interfaces';
+import { GearApi, CreateType, createPayload } from '.';
+import { Metadata } from './interfaces';
 import { SendReplyError, TransactionError } from './errors';
-import { Bytes, u64 } from '@polkadot/types';
+import { u64 } from '@polkadot/types';
 import { AnyNumber } from '@polkadot/types/types';
 import { H256, BalanceOf } from '@polkadot/types/interfaces';
 import { KeyringPair } from '@polkadot/keyring/types';
@@ -19,16 +19,14 @@ export class GearMessageReply {
   submitReply(
     message: {
       toId: H256 | string;
-      payload: string | GearType;
+      payload: string | any;
       gasLimit: u64 | AnyNumber;
       value?: BalanceOf | AnyNumber;
     },
-    meta: Metadata,
-    messageType?: string
+    meta?: Metadata,
+    messageType?: string,
   ) {
-    let payload: Bytes | Uint8Array | string;
-
-    payload = this.createType.encode(messageType || meta.async_handle_input, message.payload, meta);
+    let payload: string = createPayload(this.createType, messageType || meta.async_handle_input, message.payload, meta);
 
     try {
       this.reply = this.api.tx.gear.sendReply(message.toId, payload, message.gasLimit, message.value);
@@ -58,11 +56,11 @@ export class GearMessageReply {
             .forEach(
               ({
                 event: {
-                  data: [error]
-                }
+                  data: [error],
+                },
               }) => {
                 reject(new TransactionError(`${error.toString()}`));
-              }
+              },
             );
 
           events
@@ -72,7 +70,7 @@ export class GearMessageReply {
                 method,
                 status: status.type,
                 blockHash,
-                messageId: data.toHuman()[0]
+                messageId: data.toHuman()[0],
               });
             });
         });
