@@ -1,5 +1,5 @@
-@use 'assets/scss/variables' as *;
-@use 'assets/scss/breakpoints.scss' as *;
+@use '@gear-js/ui/variables' as *;
+@use '@gear-js/ui/breakpoints' as *;
 
 .menu {
   display: flex;
@@ -21,6 +21,8 @@
 .link {
   display: block;
   padding: 28px 10px;
+  font-size: $fontSize;
+  font-weight: 400;
   text-align: center;
   color: inherit;
   transition: all 0.25s;

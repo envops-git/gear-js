@@ -34,9 +34,9 @@ const Menu = ({ openSidebar }: Props) => {
   return (
     <ul className={styles.menu}>
       <li>
-        <span className={styles.link} onClick={openSidebar}>
+        <button className={styles.link} onClick={openSidebar}>
           {isApiReady ? localStorage.chain : 'Loading...'}
-        </span>
+        </button>
       </li>
       {getItems()}
     </ul>
